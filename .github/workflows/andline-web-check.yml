@@ -1,0 +1,34 @@
+name: ANDLINE Web Client check
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build GML Web with ANDLINE auth
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          npm run build
+          test -s .next/standalone/server.js
+      - name: Validate provider is registered in UI
+        run: |
+          grep -q 'AUTHENTICATION_TYPE_ANDLINE = 10' src/shared/enums/integration.ts
+          grep -q 'AuthenticationFormAndline' src/widgets/choose-authentication-method-dialog/ui/ChooseAuthenticationMethodDialog.tsx
