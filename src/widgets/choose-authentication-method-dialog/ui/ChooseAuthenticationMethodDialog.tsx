@@ -10,6 +10,7 @@ import { AuthenticationFormAzuriom } from '@/features/authentication-azuriom-for
 import { AuthenticationFormEasycabinet } from '@/features/authentication-easycabinet-form';
 import { AuthenticationFormUniCoreCMS } from '@/features/authentication-unicorecms-form';
 import { AuthenticationFormCustom } from '@/features/authentication-custom-form';
+import { AuthenticationFormAndline } from '@/features/authentication-andline-form/ui/AuthenticationFormAndline';
 import {
   Dialog,
   DialogContent,
@@ -58,6 +59,7 @@ export function ChooseAuthenticationMethodDialog() {
   const isFormUniCoreCMS =
     Number(authenticationTab) === AuthenticationType.AUTHENTICATION_TYPE_UNICORECMS;
   const isFormCustom = Number(authenticationTab) === AuthenticationType.AUTHENTICATION_TYPE_CUSTOM;
+  const isFormAndline = Number(authenticationTab) === AuthenticationType.AUTHENTICATION_TYPE_ANDLINE;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,7 +87,7 @@ export function ChooseAuthenticationMethodDialog() {
               </p>
             </div>
             <div className="flex flex-col w-1/2">
-              <Select defaultValue={authenticationTab} onValueChange={onAuthenticationTabToggle}>
+              <Select value={authenticationTab} onValueChange={onAuthenticationTabToggle}>
                 <SelectTrigger>
                   <SelectValue placeholder="Выберите метод аутентификации" />
                 </SelectTrigger>
@@ -107,6 +109,7 @@ export function ChooseAuthenticationMethodDialog() {
           {isFormEasyCabinet && <AuthenticationFormEasycabinet onOpenChange={onOpenChange} />}
           {isFormUniCoreCMS && <AuthenticationFormUniCoreCMS onOpenChange={onOpenChange} />}
           {isFormCustom && <AuthenticationFormCustom onOpenChange={onOpenChange} />}
+          {isFormAndline && <AuthenticationFormAndline onOpenChange={onOpenChange} />}
           {isNamelessMC && <AuthenticationFormNamelessMC onOpenChange={onOpenChange} />}
           {isWebMCR && <AuthenticationFormWebMCRReloaded onOpenChange={onOpenChange} />}
           {isWordPress && <AuthenticationFormWordpress onOpenChange={onOpenChange} />}
