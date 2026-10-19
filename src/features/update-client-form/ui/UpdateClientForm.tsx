@@ -7,7 +7,7 @@ import { ClientUpdateFormSchemaType, ClientUpdateSchema } from '../lib/static';
 
 import { Icons } from '@/shared/ui/icons';
 import { useLauncherActualVersion, useLauncherBuildVersions, useLauncherUpload } from '@/shared/hooks';
-import { cn, getApiBaseUrl, getFormatDate } from '@/shared/lib/utils';
+import { cn, getFormatDate, PUBLIC_LAUNCHER_API_URL } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Form, FormControl, FormDescription, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Textarea } from '@/shared/ui/textarea';
@@ -68,6 +68,9 @@ export function UpdateClientForm({ className, onOpenChange, ...props }: UpdateCl
                 {form.formState.errors.launcherBuild && (
                   <FormMessage>{form.formState.errors.launcherBuild.message}</FormMessage>
                 )}
+                <FormDescription>
+                  При новой сборке остаются только две последние. Более старые удаляются.
+                </FormDescription>
               </FormItem>
             )}
           />
@@ -90,7 +93,7 @@ export function UpdateClientForm({ className, onOpenChange, ...props }: UpdateCl
                       <span key={title}>
                         Актуальная версия для {title}: {data.version}
                         <Button asChild variant="link" className="ml-2">
-                          <Link href={`${getApiBaseUrl()}/api/v1/file/${data.guid}`}>Скачать</Link>
+                          <Link href={`${PUBLIC_LAUNCHER_API_URL}/api/v1/file/${data.guid}`}>Скачать</Link>
                         </Button>
                       </span>
                     ))

@@ -1,5 +1,6 @@
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useState } from "react";
 import { toast } from "sonner";
 
@@ -7,8 +8,18 @@ import { ClientDownloadFormSchemaType, ClientDownloadSchema } from '../lib/stati
 import { useOnSubmit } from '../lib/hooks/useOnSubmit';
 
 import { useConnectionHub } from '@/widgets/generate-launcher-dialog';
-import { useLauncherGithubVersions } from '@/shared/hooks';
-import { cn, getApiBaseUrl } from '@/shared/lib/utils';
+import { integrationsKeys, useLauncherGithubVersions } from '@/shared/hooks';
+import { cn, PUBLIC_LAUNCHER_API_URL } from '@/shared/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/ui/alert-dialog';
 import { Button } from '@/shared/ui/button';
 import { Form, FormControl, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Icons } from '@/shared/ui/icons';
@@ -29,13 +40,16 @@ export function DownloadClientForm({
                                    }: DownloadClientFormProps) {
   const { percent, isDownload } = state;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const queryClient = useQueryClient();
 
   const { onSubmit } = useOnSubmit({ connectionHub, state });
 
   const { data: branches } = useLauncherGithubVersions();
 
   const form = useForm<ClientDownloadFormSchemaType>({
-    values: { branch: '', host: getApiBaseUrl() || '', folder: '' },
+    values: { branch: '', host: PUBLIC_LAUNCHER_API_URL, folder: '' },
     resolver: zodResolver(ClientDownloadSchema),
     disabled: isDownload,
   });
@@ -63,6 +77,35 @@ export function DownloadClientForm({
       });
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const deleteSource = async () => {
+    const version = form.getValues('branch')?.trim();
+    if (!version) {
+      form.setError('branch', { message: 'Выберите версию для удаления' });
+      return;
+    }
+    if (!connectionHub) {
+      toast.error('Нет подключения к серверу сборки. Повторите попытку.');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await connectionHub.invoke('DeleteSource', version);
+      form.setValue('branch', '');
+      await queryClient.invalidateQueries({ queryKey: integrationsKeys.launcherGithubVersions() });
+      toast.success('Исходники удалены', {
+        description: `Версию ${version} можно скачать заново. В поле API оставьте https://api.andline.pro.`,
+      });
+    } catch (error) {
+      toast.error('Не удалось удалить исходники', {
+        description: error instanceof Error ? error.message : 'Повторите попытку позднее.',
+      });
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -141,13 +184,22 @@ export function DownloadClientForm({
             <Button
               type="button"
               variant="outline"
-              disabled={isDownload || isRefreshing || !connectionHub}
+              disabled={isDownload || isRefreshing || isDeleting || !connectionHub || !form.watch('branch')?.trim()}
+              onClick={() => setConfirmDelete(true)}
+            >
+              {isDeleting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin"/>}
+              Удалить
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDownload || isRefreshing || isDeleting || !connectionHub}
               onClick={refreshSource}
             >
               {isRefreshing && <Icons.spinner className="mr-2 h-4 w-4 animate-spin"/>}
               Обновить исходники
             </Button>
-            <Button className="w-fit" disabled={isDownload || isRefreshing || !form.formState.isDirty}>
+            <Button className="w-fit" disabled={isDownload || isRefreshing || isDeleting || !form.formState.isDirty}>
               {isDownload && <Icons.spinner className="mr-2 h-4 w-4 animate-spin"/>}
               Скачать исходники
             </Button>
@@ -155,6 +207,26 @@ export function DownloadClientForm({
           </div>
         </form>
       </Form>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить исходники?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Версия {form.watch('branch') || 'без названия'} будет удалена с сервера.
+              Игровые данные и опубликованный лаунчер не затрагиваются. После этого её можно скачать заново.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction disabled={isDeleting} onClick={(event) => {
+              event.preventDefault();
+              void deleteSource();
+            }}>
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

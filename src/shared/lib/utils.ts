@@ -10,6 +10,9 @@ export const enumValues = <T extends Record<string, unknown>>(enumEntity: T) =>
 
 export const emptyArray = (length: number) => Array(length).fill(1);
 
+/** Public GML API. Player downloads must not use the panel origin. */
+export const PUBLIC_LAUNCHER_API_URL = 'https://api.andline.pro';
+
 export const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') return window.location.origin;
   // Fallback for SSR, will be corrected on client
