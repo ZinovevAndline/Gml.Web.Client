@@ -9,6 +9,7 @@ export enum AuthenticationType {
   AUTHENTICATION_TYPE_NAMELESS_MC = 7, // Авторизация через NamelessMC
   AUTHENTICATION_TYPE_WEB_MCR_RELOADED = 8, // Авторизация через WebMCRReloaded
   AUTHENTICATION_TYPE_WORDPRESS = 9, // Авторизация через WordPress
+  AUTHENTICATION_TYPE_ANDLINE = 10, // Авторизация через ANDLINE Network
 }
 
 export enum AuthenticationTypeOption {
@@ -22,4 +23,5 @@ export enum AuthenticationTypeOption {
   'OPTION_7' = 'NamelessMC', // Авторизация через NamelessMC
   'OPTION_8' = 'WebMCRReloaded', // Авторизация через WebMCRReloaded
   'OPTION_9' = 'WordPress', // Авторизация через WordPress
+  'OPTION_10' = 'ANDLINE', // Встроенная авторизация по базовому URL сайта
 }
