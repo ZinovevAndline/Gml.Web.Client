@@ -1,6 +1,7 @@
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React from "react";
+import React, { useState } from "react";
+import { toast } from "sonner";
 
 import { ClientDownloadFormSchemaType, ClientDownloadSchema } from '../lib/static';
 import { useOnSubmit } from '../lib/hooks/useOnSubmit';
@@ -27,6 +28,7 @@ export function DownloadClientForm({
                                      ...props
                                    }: DownloadClientFormProps) {
   const { percent, isDownload } = state;
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { onSubmit } = useOnSubmit({ connectionHub, state });
 
@@ -37,6 +39,32 @@ export function DownloadClientForm({
     resolver: zodResolver(ClientDownloadSchema),
     disabled: isDownload,
   });
+
+  const refreshSource = async () => {
+    const version = form.getValues('branch')?.trim();
+    if (!version) {
+      form.setError('branch', { message: 'Выберите версию для обновления' });
+      return;
+    }
+    if (!connectionHub) {
+      toast.error('Нет подключения к серверу сборки. Повторите попытку.');
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const revision = await connectionHub.invoke<string>('RefreshSource', version);
+      toast.success('Исходники обновлены', {
+        description: `Версия ${version}: GitHub master, коммит ${revision}. Можно запускать сборку.`,
+      });
+    } catch (error) {
+      toast.error('Не удалось обновить исходники', {
+        description: error instanceof Error ? error.message : 'Повторите попытку позднее.',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <div className={cn('grid gap-4', className)} {...props}>
@@ -95,7 +123,12 @@ export function DownloadClientForm({
             )}
           />
 
-          <div className="flex justify-center items-center gap-x-4">
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              Уже скачали эту версию? Обновите её исходники из ANDLINE master без удаления папки.
+              Настройки подключения сохранятся; прежние исходники останутся для отката.
+            </p>
+            <div className="flex flex-wrap justify-end items-center gap-3">
             {isDownload && (
               <div className="w-full flex flex-col gap-y-1">
                 <p className="text-gray-700 dark:text-gray-200 text-sm">
@@ -105,10 +138,20 @@ export function DownloadClientForm({
               </div>
             )}
 
-            <Button className="w-fit ml-auto" disabled={isDownload || !form.formState.isDirty}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDownload || isRefreshing || !connectionHub}
+              onClick={refreshSource}
+            >
+              {isRefreshing && <Icons.spinner className="mr-2 h-4 w-4 animate-spin"/>}
+              Обновить исходники
+            </Button>
+            <Button className="w-fit" disabled={isDownload || isRefreshing || !form.formState.isDirty}>
               {isDownload && <Icons.spinner className="mr-2 h-4 w-4 animate-spin"/>}
               Скачать исходники
             </Button>
+            </div>
           </div>
         </form>
       </Form>
